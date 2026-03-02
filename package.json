@@ -1,0 +1,20 @@
+{
+  "name": "innSIS",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.22.1",
+    "next": "14.2.3",
+    "nodemailer": "^6.9.1",
+    "react": "^18"
+  }
+}
