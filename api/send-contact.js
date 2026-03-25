@@ -1,49 +1,34 @@
-// Vercel Serverless Function to send emails via SMTP
-// Deploy this to Vercel or similar serverless platform
+const express = require('express');
+const router = express.Router();
 
-import nodemailer from 'nodemailer';
+module.exports = (transporter) => {
+  router.post('/', async (req, res) => {
+    try {
+      const {
+        firstName, lastName, email, phone, country,
+        help, institution, jobTitle, schoolUrl,
+        schoolType, totalStudentsEnrolled, totalFacultyMembers,
+        questions, consent,
+      } = req.body;
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+      console.log(req.body, "body::::");
 
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    country,
-    help,
-    institution,
-    jobTitle,
-    schoolUrl,
-    schoolType,
-    questions,
-    consent,
-  } = req.body;
+      if (!firstName || !lastName || !email || !phone || !institution) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
 
-  // Validate required fields
-  if (!firstName || !lastName || !email || !phone || !institution) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+      const submittedAtEST = new Date().toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
 
-  try {
-    // Configure your email service (Gmail, SendGrid, etc.)
-    // For Gmail: Use an App Password (not your regular password)
-    // For SendGrid: Use SG.xxx token
-    
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER, // Set in Vercel environment variables
-        pass: process.env.EMAIL_PASS, // Set in Vercel environment variables
-      },
-    });
-
-    // Format the email body
-    const emailBody = `
-INNSIS - Request Form Submission
+      const emailBody = `INNSIS - Request Form Submission
 ================================
 
 First Name: ${firstName}
@@ -55,27 +40,37 @@ Institution Name: ${institution}
 Job Title: ${jobTitle || 'N/A'}
 School URL: ${schoolUrl || 'N/A'}
 School Type: ${schoolType || 'N/A'}
+Total Students Enrolled: ${totalStudentsEnrolled || 'N/A'}
+Total Faculty Members: ${totalFacultyMembers || 'N/A'}
 How Can We Help: ${help || 'N/A'}
 Questions/Comments: ${questions || 'N/A'}
 Consent to Contact: ${consent ? 'Yes' : 'No'}
 
 ================================
-This form was submitted from: ${req.headers.referer || 'Unknown'}
-Submitted at: ${new Date().toISOString()}
-    `;
+Submitted at: ${submittedAtEST}
+Submitted from: ${req.headers.origin || 'Unknown'}`;
 
-    // Send email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: 'areddy@crmwebx.com',
-      subject: 'INNSIS - Request Form Filled From Website',
-      text: emailBody,
-      replyTo: email,
-    });
+      await transporter.sendMail({
+        from: `"${firstName} ${lastName} - ${email}" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER,
+        subject: 'INNSIS - Request Form Filled From Website',
+        text: emailBody,
+        replyTo: email,
+      });
 
-    return res.status(200).json({ success: true, message: 'Email sent successfully' });
-  } catch (error) {
-    console.error('Email send error:', error);
-    return res.status(500).json({ error: 'Failed to send email', details: error.message });
-  }
-}
+      console.log(`✓ Email sent successfully from ${email}`);
+      return res.status(200).json({
+        success: true,
+        message: 'Email sent successfully',
+      });
+    } catch (error) {
+      console.error('Email send error:', error);
+      return res.status(500).json({
+        error: 'Failed to send email',
+        details: error.message,
+      });
+    }
+  });
+
+  return router;
+};
